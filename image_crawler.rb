@@ -2,6 +2,7 @@
 
 require 'mechanize'
 require 'logger'
+require 'open-uri'
 
 class Crawler
 
@@ -11,7 +12,9 @@ class Crawler
   end
 
   def crawl(name)
-    @agent = Mechanize.new
+    @agent = Mechanize.new {|agent|
+      agent.user_agent_alias = 'Mac Safari'
+    }
     @retry_count.times {|n|
       begin
         sleep(0.5 + 1 * n)
@@ -27,16 +30,27 @@ class Crawler
 
   def _crawl(name)
     page = @agent.get('http://www.google.co.jp')
-    search_result = page.form_with(:name => 'f') {|search|
+    search_result = page.form_with(:name => 'gbqf') {|search|
       search.q = name
     }.submit
-    images = search_result.images.select {|image|
-      image.node['name'] = 'imgthumb11'
+    img_links = search_result.links_with(:href => /imgres/)
+    if img_links.size == 0
+      @logger.warn "failed to find image links"
+      return
+    end
+    img_page = img_links[0].click
+    if img_page.title !~ /(http.+)/
+      @logger.warn "failed to find image"
+      return
+    end
+    url = $1
+    @logger.info("downloading #{url}")
+    open("img/#{name}.jpg", 'wb') {|out|
+      open(url) {|input|
+        out.write(input.read)
+      }
     }
-    return if images.size == 0
-    images[0].fetch.save!("img/#{name}.jpg")
   end
-
 end
 
 logger = Logger.new(STDERR)
