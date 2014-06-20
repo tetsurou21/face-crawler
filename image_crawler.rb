@@ -17,7 +17,7 @@ class Crawler
     }
     @retry_count.times {|n|
       begin
-        sleep(0.5 + 1 * n)
+        sleep(1 + 1 * n)
         @logger.info "crawling #{name}##{n}"
         _crawl(name)
       rescue => e
@@ -29,8 +29,8 @@ class Crawler
   end
 
   def _crawl(name)
-    page = @agent.get('http://www.google.co.jp')
-    search_result = page.form_with(:name => 'gbqf') {|search|
+    page = @agent.get('http://www.google.co.jp/imghp')
+    search_result = page.form_with(:name => 'f') {|search|
       search.q = name
     }.submit
     img_links = search_result.links_with(:href => /imgres/)
