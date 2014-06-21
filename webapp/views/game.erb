@@ -1,0 +1,11 @@
+<div class="center-block">
+<% (0..2).each do |x| %>
+<div class="row">
+  <% (0..2).each do |y| %>
+    <a href="/img/people/<%= names[x*3+y] %>.jpg">
+      <img src="/img/people/<%= names[x*3+y] %>.jpg" alt="<%= names[x*3+y] %>" class="img-thumbnail" width="100px" height="100px">
+    </a>
+  <% end %>
+</div>
+<% end %>
+</div>
