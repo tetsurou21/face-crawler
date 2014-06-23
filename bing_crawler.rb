@@ -3,6 +3,7 @@
 require 'mechanize'
 require 'logger'
 require 'open-uri'
+require 'fileutils'
 
 class Crawler
 
@@ -17,7 +18,7 @@ class Crawler
     }
     @retry_count.times {|n|
       begin
-        sleep(1 + 1 * n)
+        # sleep(0.1)
         @logger.info "crawling #{name}##{n}"
         _crawl(name)
       rescue => e
@@ -29,8 +30,9 @@ class Crawler
   end
 
   def _crawl(name)
-    filter = URI.encode('filterui:imagesize-large filterui:face-face filterui:photo-photo')
-    page = @agent.get("http://www.bing.com/images/search?qft=#{filter}&q=#{name}")
+    #filter = URI.encode('filterui:imagesize-large filterui:face-face filterui:photo-photo')
+    #page = @agent.get("http://www.bing.com/images/search?qft=#{filter}&q=#{name}")
+    page = @agent.get("http://www.bing.com/images/search?q=#{name}")
     page.search('.dg_u a').take(10).each_with_index { |a, i|
       json = CGI.unescapeHTML(a['m'])
       if  json =~ /imgurl:"([^"]+)"/
@@ -39,7 +41,13 @@ class Crawler
         @logger.warn("can't find imgurl in #{json}")
       end
       @logger.info("saving imgurl #{imgurl}")
-      _save(imgurl, "img/#{name}_#{i}.jpg")
+      _save(imgurl, "img_bing/tmp.jpg")
+
+      if not _check("img_bing/tmp.jpg")
+        next
+      end
+
+      FileUtils.mv('img_bing/tmp.jpg', "img_bing/#{name}_#{i}.jpg")
     }
   end
 
@@ -54,6 +62,14 @@ class Crawler
       end
     }
   end
+
+  def _check(file)
+    res = `./facecheck #{file}`
+    res.chomp!
+    @logger.info("res = #{res}.")
+    res == "true"
+  end
+
 end
 
 logger = Logger.new(STDERR)
