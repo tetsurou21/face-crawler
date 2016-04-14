@@ -4,6 +4,7 @@ require 'mechanize'
 require 'logger'
 require 'open-uri'
 require 'fileutils'
+require 'json'
 
 class Crawler
 
@@ -34,14 +35,16 @@ class Crawler
     search_result = page.form_with(:name => 'f') {|search|
       search.q = name
     }.submit
-    img_links = search_result.links_with(:href => /imgres/)
-    if img_links.size == 0
+    # img_links = search_result.links_with(:href => /imgres/)
+    rg_metas = search_result.css('.rg_meta')
+    if rg_metas.size == 0
       @logger.warn "failed to find image links"
       return
     end
-    img_links.take(10).each_with_index do |img_link, i|
+    rg_metas.take(10).each_with_index do |rg_meta, i|
       begin
-        _click_and_save(name, img_link, i)
+        json = JSON.parse(rg_meta.text)
+        _save(name, json['ou'], i)
         sleep(0.5)
       rescue => e
         @logger.warn(e)
@@ -49,23 +52,17 @@ class Crawler
     end
   end
 
-  def _click_and_save(name, img_link, n)
-    img_page = img_link.click
-    if img_page.title !~ /(http.+)/
-      @logger.warn "failed to find image"
-      return
-    end
-    url = $1
+  def _save(name, url, n)
     @logger.info("downloading #{url}")
     open("img/tmp.jpg", 'wb') {|out|
       open(url) {|input|
         out.write(input.read)
       }
     }
-    if not _check("img/tmp.jpg")
-      @logger.info("face not detected at #{name}##{n}")
-      return
-    end
+    # if not _check("img/tmp.jpg")
+    #   @logger.info("face not detected at #{name}##{n}")
+    #   return
+    # end
     FileUtils.mv("img/tmp.jpg", "img/#{name}_#{n}.jpg")
   end
 
